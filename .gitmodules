@@ -1,0 +1,3 @@
+[submodule "openconstructionerp"]
+	path = openconstructionerp
+	url = https://github.com/datadrivenconstruction/OpenConstructionERP.git
