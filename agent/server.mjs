@@ -49,6 +49,7 @@ const server=http.createServer(async(req,res)=>{
     if(req.method!=='POST')return send(404,{error:'Nie znaleziono'});
     const b=await jsonBody(req);
     if(p==='/api/google/connect'){
+      check(!env.GOOGLE_REDIRECT_URI?.startsWith('http://localhost:'),'Ten klient Google używa jednorazowego połączenia na komputerze właściciela. Użyj lokalnego pomocnika OAuth opisanego w instrukcji.');
       const c=google.client(false),state=randomBytes(32).toString('hex'),{codeVerifier,codeChallenge}=await c.generateCodeVerifierAsync();
       for(const [k,v]of states)if(v.expires<Date.now())states.delete(k);
       states.set(state,{verifier:codeVerifier,expires:Date.now()+600000});

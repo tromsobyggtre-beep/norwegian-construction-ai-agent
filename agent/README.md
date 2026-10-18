@@ -18,6 +18,14 @@ Zakresy OAuth są jawnie zadeklarowane w `google.mjs`: odczyt Gmail + wysłanie 
 
 ## AI
 
+## Jednorazowy OAuth przez komputer właściciela
+
+Jeśli Google odrzuca współdzieloną domenę `code.run`, zarejestruj klienta Web z redirect URI `http://localhost:8787/oauth/google/callback`. Pomocnik `oauth-local.mjs` uruchamia nasłuch wyłącznie na `127.0.0.1`, sprawdza PKCE, jednorazowy state i adres konta, a otrzymane tokeny zapisuje wyłącznie w szyfrowanym magazynie. Wymaga `GOOGLE_CREDENTIALS_FILE` (pobrany JSON Web OAuth), `GOOGLE_ACCOUNT_EMAIL`, `DATA_ENCRYPTION_KEY`, `OAUTH_DATA_DIR`, `OAUTH_URL_FILE`. Uruchom `node oauth-local.mjs`, otwórz adres z `OAUTH_URL_FILE` i samodzielnie zaakceptuj dostęp Google. Sesja wygasa po 15 minutach. Nie przekazuj pliku JSON ani tokenów w czacie.
+
+Po zgodzie przenieś przez zaufany proces wdrożenia `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN` i `GOOGLE_REDIRECT_URI=http://localhost:8787/oauth/google/callback` do sekretów runtime Northflank. Ten refresh token inicjalizuje szyfrowany magazyn agenta przy pierwszym uruchomieniu. Komputer nie jest potrzebny do odświeżania tokena; jest potrzebny tylko przy ponownym udzielaniu zgody. Przycisk Połącz Google w panelu informuje wtedy o konieczności użycia pomocnika. Ustawienia aplikacji w trybie Testing mogą nadal wymagać ponownej zgody po 7 dniach.
+
+## Analiza AI
+
 Ustaw `OPENAI_API_KEY` i `OPENAI_MODEL` w sekretach Northflank. Model jest konfigurowalny, nie jest to nazwa wtyczki Bogdan. Przycisk Analiza Bogdana przekazuje ostatnią migawkę do OpenAI Responses API z `store:false`; AI nie otrzymuje narzędzi wykonujących działania. Analiza jest ręczna, bez cyklicznego kosztu modeli. Same obliczenia Fast Price działają bez klucza AI.
 
 ## Zatwierdzenia i eksploatacja

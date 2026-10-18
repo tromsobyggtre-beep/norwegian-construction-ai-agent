@@ -2,11 +2,14 @@ import {OAuth2Client} from 'google-auth-library';
 import {check} from './core.mjs';
 export const scopes=['https://www.googleapis.com/auth/gmail.readonly','https://www.googleapis.com/auth/gmail.send','https://www.googleapis.com/auth/calendar.events','https://www.googleapis.com/auth/calendar.readonly','https://www.googleapis.com/auth/drive.metadata.readonly','https://www.googleapis.com/auth/drive.file'];
 export class Google {
-  constructor(store,env=process.env) {this.store=store;this.env=env;}
+  constructor(store,env=process.env) {
+    this.store=store;this.env=env;
+    if(!store.data.google&&env.GOOGLE_REFRESH_TOKEN){store.data.google={refresh_token:env.GOOGLE_REFRESH_TOKEN};store.save();}
+  }
   configured(){return !!(this.env.GOOGLE_CLIENT_ID&&this.env.GOOGLE_CLIENT_SECRET&&this.env.PUBLIC_URL&&this.env.GOOGLE_ACCOUNT_EMAIL);}
   client(persist=true) {
     check(this.configured(),'Najpierw skonfiguruj klienta OAuth Google i adres konta firmy');
-    const c=new OAuth2Client(this.env.GOOGLE_CLIENT_ID,this.env.GOOGLE_CLIENT_SECRET,this.env.PUBLIC_URL+'/oauth/google/callback');
+    const c=new OAuth2Client(this.env.GOOGLE_CLIENT_ID,this.env.GOOGLE_CLIENT_SECRET,this.env.GOOGLE_REDIRECT_URI||this.env.PUBLIC_URL+'/oauth/google/callback');
     if(this.store.data.google)c.setCredentials(this.store.data.google);
     if(persist)c.on('tokens',t=>{this.store.data.google={...this.store.data.google,...t};this.store.save();});return c;
   }
