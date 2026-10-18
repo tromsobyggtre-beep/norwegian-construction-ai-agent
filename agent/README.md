@@ -1,0 +1,31 @@
+# Bogdan — agent TBT na Northflank
+
+Agent działa niezależnie od zachowanego ERP w głównym katalogu. Buduj `agent/Dockerfile` z kontekstem repozytorium. Port 8080, kontrola stanu `/healthz`, jedna instancja, trwały dysk `/data`. Wszystkie dane i refresh token Google są szyfrowane AES-256-GCM. Zachowaj niezależną, bezpieczną kopię `DATA_ENCRYPTION_KEY`; bez niej odtworzenie kopii danych jest niemożliwe.
+
+Wycena: osobogodziny × 850 NOK netto + potwierdzone materiały netto + potwierdzona logistyka netto. MVA 25%. Bez automatycznego narzutu na stawkę sprzedaży. Potwierdź osobno, że wszystkie koszty zostały uwzględnione. Wygenerowane wersje PL i NO są projektami do sprawdzenia. Ilości i zakres wpisuje właściciel; agent nie wymyśla pomiarów. Dla okien domyślnie uwzględnij zakup i dostawę TBT.
+
+## Google od początku
+
+1. W koncie firmy utwórz projekt Google Cloud `TBT Bogdan Agent`.
+2. Włącz Gmail API, Google Calendar API, Google Drive API.
+3. W Google Auth Platform ustaw nazwę aplikacji `TBT Bogdan`, firmowy adres wsparcia i adres kontaktowy właściciela. Konto Gmail wymaga typu External. W trybie Testing dodaj `tromsobyggtre@gmail.com` jako test user. Zewnętrzny tryb Testing dla tych uprawnień może powodować wygaśnięcie refresh tokena po 7 dniach; do stałej pracy sprawdź wymagania publikacji i weryfikacji Google. Nie omijaj ostrzeżeń bezpieczeństwa.
+4. Utwórz klienta OAuth typu Web application. Authorized redirect URI: `https://site--norwegian-construction-ai-agent--jkpql7qmx4kk.code.run/oauth/google/callback`.
+5. W sekretach runtime istniejącej usługi Northflank dodaj `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_ACCOUNT_EMAIL=tromsobyggtre@gmail.com`. Nie wklejaj sekretów do czatu ani Git. Opcjonalnie ustaw `GOOGLE_DRIVE_FOLDER_ID` na folder ofert.
+6. Po ponownym wdrożeniu otwórz panel, zaloguj się kluczem `ADMIN_TOKEN`, wybierz Połącz Google i samodzielnie udziel zgody na ekranie Google. PKCE i jednorazowy state chronią wymianę kodu; konto musi odpowiadać ustawionemu adresowi.
+7. Uruchom ręczny przegląd, sprawdź wynik i włącz monitoring co 15 minut. Monitoring odczytuje dane, nie wysyła wiadomości. Zmienione źródła są widoczne w ostatniej migawce panelu; ta wersja nie wysyła powiadomień push ani e-mailowych.
+
+Zakresy OAuth są jawnie zadeklarowane w `google.mjs`: odczyt Gmail + wysłanie zatwierdzonej wiadomości; odczyt kalendarza + zapis wydarzenia; odczyt Drive + tworzenie plików aplikacji. Odczyt Drive w tej wersji pobiera nazwy i metadane, a Gmail nagłówki i skróty wiadomości. Treść załączników i dokumentów nie jest automatycznie importowana. Limity migawki: 30 wiadomości z ostatnich 30 dni, 50 wydarzeń w ciągu 14 dni, 50 plików. To nie jest pełny audyt skrzynki.
+
+## AI
+
+Ustaw `OPENAI_API_KEY` i `OPENAI_MODEL` w sekretach Northflank. Model jest konfigurowalny, nie jest to nazwa wtyczki Bogdan. Przycisk Analiza Bogdana przekazuje ostatnią migawkę do OpenAI Responses API z `store:false`; AI nie otrzymuje narzędzi wykonujących działania. Analiza jest ręczna, bez cyklicznego kosztu modeli. Same obliczenia Fast Price działają bez klucza AI.
+
+## Zatwierdzenia i eksploatacja
+
+Każda wysyłka, wydarzenie i plik Drive powstaje jako niezmienna propozycja z sumą kontrolną. Zatwierdzenie dotyczy odbiorcy i dokładnej treści. Wynik niepewny lub przerwany pozostaje do ręcznego sprawdzenia; brak automatycznego ponowienia. Przed zapisem wydarzenia sprawdzana jest dostępność, bez zapraszania uczestników. Zapis Drive tworzy plik TXT, bez zmiany uprawnień. Nie ma kasowania poczty ani automatycznego archiwizowania.
+
+Panel jest chroniony kluczem administratora przesyłanym w nagłówku HTTPS. Klucz nie jest zapisywany w przeglądarce. Dla większej liczby użytkowników należy dodać indywidualne konta/SSO. Zapis jest przeznaczony dla jednej instancji. Kopie dysku i klucza szyfrowania są osobnymi elementami odzyskiwania; regularnie testuj odtworzenie. Historia audytu ma limit 1000 wpisów, 1000 ofert i 2000 działań; po osiągnięciu limitu potrzebna jest świadoma archiwizacja.
+
+Testy: `npm ci`, `npm test`. Integracja z prawdziwym kontem wymaga OAuth i testu wykonanego przez właściciela, bez wysyłania oferty do klienta w trakcie konfiguracji.
+
+Dokumentacja: https://developers.google.com/identity/protocols/oauth2/web-server oraz https://developers.openai.com/api/docs/guides/text .
