@@ -1,0 +1,10 @@
+**
+!Dockerfile
+!Dockerfile.free
+!NOTICE
+!scripts
+!scripts/bootstrap_admin.py
+!deploy
+!deploy/free-tier
+!deploy/free-tier/apply_profile.py
+!deploy/free-tier/resource_profile.py

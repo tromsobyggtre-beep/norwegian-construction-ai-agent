@@ -1,0 +1,48 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: oe
+      POSTGRES_DB: openestimate
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U oe -d openestimate]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  erp:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Keep initial administrator creation local to this machine.
+    ports:
+      - 127.0.0.1:8080:8080
+    environment:
+      OE_DB_HOST: postgres
+      OE_DB_PORT: "5432"
+      OE_DB_USER: oe
+      OE_DB_NAME: openestimate
+      OE_DB_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    # Named local Docker volumes need the non-root image user's ownership.
+    # Docker initially copies /data's image ownership into a new named volume.
+    volumes:
+      - app_data:/data
+    healthcheck:
+      test: [CMD, curl, -f, http://localhost:8080/api/health]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 120s
+
+volumes:
+  pg_data:
+  app_data:

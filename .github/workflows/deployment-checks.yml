@@ -1,0 +1,63 @@
+name: Deployment checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  configuration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          # Configuration builds use a released image, not the source submodule.
+          submodules: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          package-manager-cache: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: node scripts/validate-deployment.mjs
+      - run: python -m unittest discover -s tests -v
+
+  container-smoke:
+    needs: configuration
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          submodules: false
+      - name: Generate temporary test credentials
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import secrets
+          Path('.env').write_text(
+              'POSTGRES_PASSWORD=' + secrets.token_hex(32) + '\n'
+              'JWT_SECRET=' + secrets.token_hex(32) + '\n',
+              encoding='utf-8',
+          )
+          PY
+      - name: Start application and PostgreSQL
+        run: docker compose up --build -d --wait --wait-timeout 480
+      - name: Verify frontend, health and writable persistent storage
+        run: |
+          curl --fail --silent --output /dev/null http://127.0.0.1:8080/
+          curl --fail --silent --output /dev/null http://127.0.0.1:8080/api/health
+          docker compose exec -T erp python -c "import os, pathlib; assert os.geteuid() != 0; p=pathlib.Path('/data/.deployment-check'); p.write_text('ok'); p.unlink()"
+      - name: Print service status on failure
+        if: failure()
+        run: docker compose ps
+      - name: Stop test containers
+        if: always()
+        run: docker compose down
