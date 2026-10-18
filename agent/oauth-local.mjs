@@ -12,18 +12,22 @@ const auth=c.generateAuthUrl({access_type:'offline',prompt:'consent',scope:scope
 const expires=Date.now()+15*60000;let used=false;
 const server=http.createServer(async(req,res)=>{
   res.setHeader('Cache-Control','no-store');res.setHeader('Referrer-Policy','no-referrer');res.setHeader('Content-Type','text/plain; charset=utf-8');
+  let stage='callback_validation';
   try{
     const u=new URL(req.url,'http://localhost:8787');
     if(u.pathname!=='/oauth/google/callback'){res.statusCode=404;return res.end('Nie znaleziono');}
     check(!used&&Date.now()<expires&&equal(u.searchParams.get('state'),state),'Nieprawidłowa lub wygasła sesja');used=true;
     check(!u.searchParams.has('error'),'Zgoda nie została udzielona');
+    stage='token_exchange';
     const {tokens}=await c.getToken({code:u.searchParams.get('code'),codeVerifier});check(tokens.refresh_token,'Brak refresh tokena. Cofnij wcześniejszą zgodę TBT i spróbuj ponownie.');
+    store.data.pendingGoogle=tokens;store.audit('google_pending_verification','');
+    stage='account_verification';
     c.setCredentials(tokens);const p=await c.request({url:'https://gmail.googleapis.com/gmail/v1/users/me/profile',timeout:25000});
     check(p.data.emailAddress?.toLowerCase()===env.GOOGLE_ACCOUNT_EMAIL.toLowerCase(),'Wybrano inne konto Google');
-    store.data.google=tokens;store.audit('google_authorized',p.data.emailAddress);
+    store.data.google=tokens;delete store.data.pendingGoogle;store.audit('google_authorized',p.data.emailAddress);
     res.end('Połączono konto Google z TBT. Możesz zamknąć tę kartę. Trwa końcowa konfiguracja serwera.');
     console.log('GOOGLE_AUTH_COMPLETE');server.close();
-  }catch(e){res.statusCode=400;res.end('Nie udało się połączyć konta. Uruchom pomocnika ponownie.');console.log('GOOGLE_AUTH_FAILED');server.close();}
+  }catch(e){res.statusCode=400;res.end('Nie udało się potwierdzić połączenia konta. Sprawdź stan konfiguracji w czacie TBT.');console.log('GOOGLE_AUTH_FAILED',JSON.stringify({stage,code:e.code,status:e.response?.status,cause:e.cause?.code}));server.close();}
 });
 server.listen(8787,'127.0.0.1',()=>{fs.writeFileSync(env.OAUTH_URL_FILE,auth,{mode:0o600});console.log('Local Google authorization ready.');});
 setTimeout(()=>{server.close();process.exit(0);},15*60000).unref();
