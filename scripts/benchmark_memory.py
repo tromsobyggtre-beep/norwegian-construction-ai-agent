@@ -178,7 +178,7 @@ def http(base: str, path: str, method: str = "GET", body: dict | None = None,
     return raw
 
 
-def exercise(base: str, hold_seconds: int) -> list[str]:
+def exercise(base: str, hold_seconds: int, sensitive_values: set[str]) -> list[str]:
     """One administrator, one project, one BOQ, ten costed lines, repeated reads."""
     checks = []
     frontend = http(base, "/")
@@ -189,6 +189,7 @@ def exercise(base: str, hold_seconds: int) -> list[str]:
         "email": "memory-benchmark@example.test", "password": "Aa1" + secrets.token_hex(24),
         "full_name": "Memory benchmark",
     }
+    sensitive_values.add(credentials["password"])
     account = http(base, "/api/v1/users/auth/register", "POST", credentials, expected=201)
     if account.get("role") != "admin" or account.get("is_active") is not True:
         raise ProbeError("Bootstrap did not return an active administrator")
@@ -202,6 +203,7 @@ def exercise(base: str, hold_seconds: int) -> list[str]:
     token = login.get("access_token")
     if not isinstance(token, str) or not token:
         raise ProbeError("Login did not return an access token")
+    sensitive_values.update(value for key, value in login.items() if "token" in key and isinstance(value, str))
     checks.append("login")
     project = http(base, "/api/v1/projects/", "POST", {
         "name": "Tromso benchmark", "region": "Norway", "currency": "NOK", "locale": "no",
@@ -237,17 +239,41 @@ def exercise(base: str, hold_seconds: int) -> list[str]:
     return checks
 
 
+def safe_log_tail(container: str, sensitive_values: set[str]) -> list[str]:
+    """Capture privately, redact before storing, retain at most 80 bounded lines."""
+    try:
+        logs = docker("logs", "--tail", "80", container, check=False)
+    except ProbeError:
+        return ["Container logs unavailable"]
+    text = logs.stdout + logs.stderr
+    for secret in sorted(sensitive_values, key=len, reverse=True):
+        if secret:
+            text = text.replace(secret, "[REDACTED]")
+    # Extra defence for token/hash values produced by the application itself.
+    text = re.sub(r"\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b", "[REDACTED_JWT]", text)
+    text = re.sub(r"\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}", "[REDACTED_PASSWORD_HASH]", text)
+    text = re.sub(
+        r"(?i)(\b[A-Z_]*(?:PASSWORD|SECRET|TOKEN|API_KEY)[A-Z_]*\s*[=:]\s*)[^\s,;]+",
+        r"\1[REDACTED]", text,
+    )
+    # Logging errors/tracebacks remains useful; do not return docker inspect/env.
+    return [line[:1000] for line in text.splitlines()[-80:]][-80:]
+
+
 def trial(args: argparse.Namespace, limit: int) -> dict:
     identity = "erp-memory-" + secrets.token_hex(5)
     network, app, db = identity + "-net", identity + "-app", identity + "-db"
     volumes = [identity + "-app-data", identity + "-db-data"]
     monitors = []
+    sensitive_values: set[str] = set()
+    phase = "database_startup"
     result = {"profile": args.profile, "app_limit_mib": limit, "database_limit_mib": 256,
               "status": "failed", "checks": [], "started_utc": datetime.now(timezone.utc).isoformat()}
     started = time.monotonic()
     try:
         with tempfile.TemporaryDirectory(prefix="erp-memory-") as temp:
             password = secrets.token_hex(32)
+            sensitive_values.add(password)
             pg_env = Path(temp) / "postgres.env"
             app_env = Path(temp) / "app.env"
             pg_env.write_text(f"POSTGRES_PASSWORD={password}\nPOSTGRES_USER=oe\nPOSTGRES_DB=openestimate\n")
@@ -259,11 +285,14 @@ def trial(args: argparse.Namespace, limit: int) -> dict:
                 "ALLOWED_ORIGINS": "http://127.0.0.1", "OPENAI_API_KEY": "",
                 "ALLOW_RUNTIME_UPGRADE": "false", "REDIS_URL": "",
             }
+            sensitive_values.add(app_values["JWT_SECRET"])
             for value in args.env:
                 key, val = value.split("=", 1)
                 if key in {"SEED_DEMO", "OE_REGISTRATION_MODE", "OE_DOWNLOAD_EMBEDDING_MODEL", "OPENAI_API_KEY"}:
                     raise ProbeError("Benchmark safety settings cannot be overridden")
                 app_values[key] = val
+                if re.search(r"PASSWORD|SECRET|TOKEN|API_KEY", key, re.I) and val:
+                    sensitive_values.add(val)
             app_env.write_text("".join(f"{k}={v}\n" for k, v in app_values.items()))
             os.chmod(pg_env, 0o600)
             os.chmod(app_env, 0o600)
@@ -282,13 +311,16 @@ def trial(args: argparse.Namespace, limit: int) -> dict:
             db_monitor.start()
             monitors.append(("database_memory", db_monitor))
             for _ in range(60):
-                if docker("exec", db, "pg_isready", "-U", "oe", "-d", "openestimate", check=False).returncode == 0:
+                # The image starts a temporary Unix-socket-only server during
+                # initdb. Wait for the final TCP server, as the app uses TCP.
+                if docker("exec", db, "pg_isready", "-h", "127.0.0.1", "-U", "oe", "-d", "openestimate", check=False).returncode == 0:
                     break
                 if not inspect_state(db).get("Running"):
                     raise ProbeError("PostgreSQL stopped during startup")
                 time.sleep(1)
             else:
                 raise ProbeError("PostgreSQL readiness timed out")
+            phase = "application_startup"
             run_args = ["run", "-d", "--name", app, "--network", network,
                         "--memory", f"{limit}m", "--memory-swap", f"{limit}m",
                         "--env-file", str(app_env), "--publish", "127.0.0.1::8080",
@@ -313,10 +345,12 @@ def trial(args: argparse.Namespace, limit: int) -> dict:
                     time.sleep(2)
             else:
                 raise ProbeError("Application health did not become ready before the startup timeout")
-            result["checks"] = ["health_ready"] + exercise(base, args.hold_seconds)
+            phase = "application_workload"
+            result["checks"] = ["health_ready"] + exercise(base, args.hold_seconds, sensitive_values)
             result["status"] = "passed"
     except (ProbeError, KeyError, ValueError) as exc:
         result["failure"] = str(exc) if isinstance(exc, ProbeError) else "Unexpected API response shape"
+        result["failure_kind"] = phase
     finally:
         for name, monitor in monitors:
             result[name] = monitor.finish()
@@ -326,14 +360,22 @@ def trial(args: argparse.Namespace, limit: int) -> dict:
         if any(result.get(name, {}).get("OOMKilled") for name in ("app_state", "database_state")):
             result["status"] = "failed"
             result["failure"] = "A container was killed for exceeding its memory limit"
+            result["failure_kind"] = "out_of_memory"
         elif any(result.get(name, {}).get("observed_oom_kills", 0) for name in ("app_memory", "database_memory")):
             result["status"] = "failed"
             result["failure"] = "The cgroup reported an out-of-memory kill"
+            result["failure_kind"] = "out_of_memory"
         if result["status"] == "passed" and not all(
             result.get(name, {}).get("available") for name in ("app_memory", "database_memory")
         ):
             result["status"] = "unverified_memory"
             result["failure"] = "Workload passed, but host cgroup memory measurements were unavailable"
+            result["failure_kind"] = "measurement_unavailable"
+        if result["status"] != "passed":
+            result["redacted_log_tails"] = {
+                "application": safe_log_tail(app, sensitive_values),
+                "database": safe_log_tail(db, sensitive_values),
+            }
         try:
             docker("rm", "-f", app, db, check=False)
             for volume in volumes:
