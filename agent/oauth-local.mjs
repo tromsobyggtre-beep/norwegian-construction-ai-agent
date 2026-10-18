@@ -16,7 +16,11 @@ const server=http.createServer(async(req,res)=>{
   try{
     const u=new URL(req.url,'http://localhost:8787');
     if(u.pathname!=='/oauth/google/callback'){res.statusCode=404;return res.end('Nie znaleziono');}
-    check(!used&&Date.now()<expires&&equal(u.searchParams.get('state'),state),'Nieprawidłowa lub wygasła sesja');used=true;
+    if(used||Date.now()>=expires||!equal(u.searchParams.get('state'),state)){
+      res.statusCode=400;res.end('Ta karta dotyczy starszej lub zakończonej sesji. Wróć do aktualnej karty połączenia Google.');
+      console.log('STALE_SESSION_IGNORED');return;
+    }
+    used=true;
     check(!u.searchParams.has('error'),'Zgoda nie została udzielona');
     stage='token_exchange';
     const {tokens}=await c.getToken({code:u.searchParams.get('code'),codeVerifier});check(tokens.refresh_token,'Brak refresh tokena. Cofnij wcześniejszą zgodę TBT i spróbuj ponownie.');
