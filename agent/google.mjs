@@ -1,6 +1,6 @@
 import {OAuth2Client} from 'google-auth-library';
 import {check} from './core.mjs';
-export const scopes=['https://www.googleapis.com/auth/gmail.readonly','https://www.googleapis.com/auth/gmail.send','https://www.googleapis.com/auth/calendar.events','https://www.googleapis.com/auth/calendar.readonly','https://www.googleapis.com/auth/drive.readonly','https://www.googleapis.com/auth/drive.file'];
+export const scopes=['https://www.googleapis.com/auth/gmail.readonly','https://www.googleapis.com/auth/gmail.send','https://www.googleapis.com/auth/calendar.events','https://www.googleapis.com/auth/calendar.readonly','https://www.googleapis.com/auth/drive.metadata.readonly','https://www.googleapis.com/auth/drive.file'];
 export class Google {
   constructor(store,env=process.env) {this.store=store;this.env=env;}
   configured(){return !!(this.env.GOOGLE_CLIENT_ID&&this.env.GOOGLE_CLIENT_SECRET&&this.env.PUBLIC_URL&&this.env.GOOGLE_ACCOUNT_EMAIL);}
