@@ -239,13 +239,8 @@ def exercise(base: str, hold_seconds: int, sensitive_values: set[str]) -> list[s
     return checks
 
 
-def safe_log_tail(container: str, sensitive_values: set[str]) -> list[str]:
-    """Capture privately, redact before storing, retain at most 80 bounded lines."""
-    try:
-        logs = docker("logs", "--tail", "80", container, check=False)
-    except ProbeError:
-        return ["Container logs unavailable"]
-    text = logs.stdout + logs.stderr
+def safe_text_tail(text: str, sensitive_values: set[str], line_count: int = 80) -> list[str]:
+    """Redact captured diagnostics before retaining bounded lines."""
     for secret in sorted(sensitive_values, key=len, reverse=True):
         if secret:
             text = text.replace(secret, "[REDACTED]")
@@ -257,7 +252,16 @@ def safe_log_tail(container: str, sensitive_values: set[str]) -> list[str]:
         r"\1[REDACTED]", text,
     )
     # Logging errors/tracebacks remains useful; do not return docker inspect/env.
-    return [line[:1000] for line in text.splitlines()[-80:]][-80:]
+    return [line[:1000] for line in text.splitlines()[-line_count:]]
+
+
+def safe_log_tail(container: str, sensitive_values: set[str]) -> list[str]:
+    """Capture privately, redact before storing, retain at most 80 bounded lines."""
+    try:
+        logs = docker("logs", "--tail", "80", container, check=False)
+    except ProbeError:
+        return ["Container logs unavailable"]
+    return safe_text_tail(logs.stdout + logs.stderr, sensitive_values)
 
 
 def trial(args: argparse.Namespace, limit: int) -> dict:
@@ -302,7 +306,7 @@ def trial(args: argparse.Namespace, limit: int) -> dict:
             docker("run", "-d", "--name", db, "--network", network, "--network-alias", "postgres",
                    "--memory", "256m", "--memory-swap", "256m", "--env-file", str(pg_env),
                    "--mount", f"source={volumes[1]},target=/var/lib/postgresql/data",
-                   "postgres:16-alpine", "-c", "shared_buffers=16MB", "-c", "max_connections=20",
+                   "postgres:16-alpine", "-c", "shared_buffers=16MB", "-c", "max_connections=100",
                    "-c", "work_mem=1MB", "-c", "maintenance_work_mem=16MB", timeout=180)
             result["database_image_id"] = docker(
                 "image", "inspect", "--format", "{{.Id}}", "postgres:16-alpine",
@@ -320,6 +324,19 @@ def trial(args: argparse.Namespace, limit: int) -> dict:
                 time.sleep(1)
             else:
                 raise ProbeError("PostgreSQL readiness timed out")
+            # Keep PostgreSQL's normal lock table capacity: ERP creates hundreds
+            # of tables/indexes in one transaction. Lowering max_connections also
+            # lowers max_locks_per_transaction * max_connections lock slots.
+            settings = docker(
+                "exec", db, "psql", "-X", "-A", "-t", "-U", "oe", "-d", "openestimate", "-c",
+                "SELECT json_build_object("
+                "'shared_buffers', current_setting('shared_buffers'),"
+                "'max_connections', current_setting('max_connections'),"
+                "'max_locks_per_transaction', current_setting('max_locks_per_transaction'),"
+                "'work_mem', current_setting('work_mem'),"
+                "'maintenance_work_mem', current_setting('maintenance_work_mem'))",
+            )
+            result["database_settings"] = json.loads(settings.stdout)
             phase = "application_startup"
             run_args = ["run", "-d", "--name", app, "--network", network,
                         "--memory", f"{limit}m", "--memory-swap", f"{limit}m",
@@ -422,7 +439,13 @@ def main() -> int:
             build = ["build", "--file", args.dockerfile, "--tag", args.image]
             for value in args.build_arg:
                 build += ["--build-arg", value]
-            docker(*build, ".", timeout=900)
+            built = docker(*build, ".", timeout=900, check=False)
+            if built.returncode:
+                override_values = {value.split("=", 1)[1] for value in args.build_arg + args.env}
+                report["setup_diagnostics"] = safe_text_tail(
+                    built.stdout + built.stderr, override_values, line_count=20,
+                )
+                raise ProbeError(f"Docker build failed (exit {built.returncode}); see redacted setup diagnostics")
         report["app_image_id"] = docker("image", "inspect", "--format", "{{.Id}}", args.image).stdout.strip()
         for limit in args.limits:
             print(f"Benchmarking profile={args.profile}, application={limit} MiB, PostgreSQL=256 MiB", flush=True)

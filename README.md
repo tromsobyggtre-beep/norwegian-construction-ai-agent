@@ -2,6 +2,8 @@
 
 Projekt dla Tromsø Bygg & Tre, oparty na [OpenConstructionERP](https://github.com/datadrivenconstruction/OpenConstructionERP), z konfiguracją wdrożenia na Northflank.
 
+Dla aktywnego Northflank Developer Sandbox przygotowano [ograniczony profil pilotażowy](docs/FREE_TIER.md) w `Dockerfile.free`. Uruchamia podstawowe projekty, przedmiary i koszty. Wymaga potwierdzenia testów pamięci i bezpłatnych zasobów na koncie przed wdrożeniem.
+
 ## Co zawiera projekt
 
 - `openconstructionerp/` — pełne repozytorium ERP jako submoduł Git, przypięte do wydania **v18.6.4**, commit `a7adbbe01bacac0b44168a279a8a2f286551dd02`.
@@ -14,7 +16,7 @@ Konfiguracja wyłącza dane demonstracyjne i publiczną rejestrację. Pierwszego
 
 ## Wdrożenie na Northflank
 
-Przejdź do [instrukcji wdrożenia](docs/NORTHFLANK.md). Szablon należy uruchomić w swoim koncie Northflank po podłączeniu tego repozytorium GitHub. Dobierz region i plan w panelu przed utworzeniem płatnych zasobów.
+Dla istniejącego projektu `default` zespołu `tromsobyggtres-team`, bez środowiska i z budżetem 0 USD, użyj [instrukcji Sandbox](docs/FREE_TIER.md). `deploy/northflank.template.json` i [instrukcja pełnego wdrożenia](docs/NORTHFLANK.md) opisują osobny, płatny wariant z nowym projektem; nie uruchamiaj go do tego pilotażu.
 
 Do zbudowania domyślnego obrazu nie trzeba pobierać submodułu — korzysta z przypiętego oficjalnego obrazu ERP. Zmiany kodu w `openconstructionerp/` wymagają osobnego budowania ze źródeł; sam Dockerfile w katalogu głównym ich nie wdraża.
 

@@ -1,12 +1,15 @@
 Norwegian Construction AI Agent - deployment configuration
 
-This repository includes OpenConstructionERP as a Git submodule and deploys
-its official, unmodified application image. OpenConstructionERP is maintained
-by DataDrivenConstruction and its contributors.
+This repository includes OpenConstructionERP as a Git submodule. Dockerfile
+uses its official application image; Dockerfile.free applies an optional reduced
+resource profile from deploy/free-tier/ to the same pinned image.
+OpenConstructionERP is maintained by DataDrivenConstruction and its contributors.
 Source: https://github.com/datadrivenconstruction/OpenConstructionERP
 License: GNU Affero General Public License, version 3 or later (AGPL-3.0-or-later).
 Upstream copyright, licence and third-party notices are preserved in the
 openconstructionerp submodule and in the upstream image.
 
-The deployment files and bootstrap helper in this repository are distributed
-under AGPL-3.0-or-later as well. See LICENSE for the full licence text.
+The deployment files, bootstrap helper and optional resource-profile changes
+in this repository are distributed under AGPL-3.0-or-later as well.
+Corresponding modifications: https://github.com/tromsobyggtre-beep/norwegian-construction-ai-agent
+See LICENSE for the full licence text.

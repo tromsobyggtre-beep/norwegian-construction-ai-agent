@@ -5,15 +5,6 @@ on:
   push:
     branches: [codex/northflank-free-tier]
   workflow_dispatch:
-    inputs:
-      profile:
-        description: Report label (choose Dockerfile below for runtime)
-        type: string
-        default: free-tier
-      dockerfile:
-        description: Dockerfile to benchmark
-        type: string
-        default: Dockerfile.free
 
 permissions:
   contents: read
@@ -25,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        memory: [256, 512, 768]
+        memory: [256, 512]
         profile: [baseline, free-tier]
     steps:
       - uses: actions/checkout@v7
