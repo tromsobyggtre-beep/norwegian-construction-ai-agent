@@ -26,6 +26,7 @@ const server=http.createServer(async(req,res)=>{
   try{
     if(req.method==='GET'&&url.pathname==='/healthz')return send(200,{ok:true,service:'tbt-bogdan'});
     if(req.method==='GET'&&url.pathname==='/'){res.writeHead(200,{...headers,'Content-Type':'text/html; charset=utf-8'});return res.end(ui);}
+    if(req.method==='GET'&&['/about','/privacy'].includes(url.pathname)){res.writeHead(200,{...headers,'Content-Type':'text/html; charset=utf-8'});return res.end(readFileSync(new URL(url.pathname==='/about'?'./about.html':'./privacy.html',import.meta.url)));}
     if(req.method==='GET'&&url.pathname==='/app.js'){res.writeHead(200,{...headers,'Content-Type':'text/javascript; charset=utf-8'});return res.end(readFileSync(new URL('./app.js',import.meta.url)));}
     if(req.method==='GET'&&url.pathname==='/oauth/google/callback'){
       const state=url.searchParams.get('state'),saved=states.get(state);states.delete(state);

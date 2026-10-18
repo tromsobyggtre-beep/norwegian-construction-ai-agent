@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Prywatność / Personvern · TBT Bogdan</title>
+  <style>
+    body{font:16px system-ui;background:#eef2f5;color:#182e3d;max-width:1080px;margin:auto;padding:24px;line-height:1.65}
+    h1{line-height:1.25;margin-bottom:8px}h2,h3{line-height:1.3}h3{margin-top:28px}
+    small,.muted{color:#526878}section{background:white;padding:24px;border-radius:14px;margin:20px 0;box-shadow:0 2px 10px #1730440b}
+    a{color:#135c70;text-underline-offset:3px}a:focus-visible{outline:3px solid #135c70;outline-offset:4px}
+    nav{display:flex;flex-wrap:wrap;gap:12px 24px;margin:18px 0}li{margin:8px 0}p{max-width:85ch}
+    .notice{background:#fff3d5;padding:16px;border-radius:8px}.contact{overflow-wrap:anywhere}
+    footer{padding:4px 0 20px}@media(max-width:650px){body{padding:12px}section{padding:20px}}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>TBT Bogdan <small>· Prywatność / Personvern</small></h1>
+    <p>Prywatna aplikacja Tromsø Bygg &amp; Tre ANS<br><span lang="nb">Privat app for Tromsø Bygg &amp; Tre ANS</span></p>
+    <nav aria-label="Nawigacja / Navigasjon">
+      <a href="/about">O aplikacji / Om appen</a>
+      <a href="#pl" lang="pl">Polski</a>
+      <a href="#no" lang="nb">Norsk</a>
+    </nav>
+    <p class="muted">Data informacji / Informasjonen er datert: <time datetime="2026-10-18">2026-10-18</time></p>
+  </header>
+
+  <main>
+    <section id="pl" lang="pl" aria-labelledby="pl-title">
+      <h2 id="pl-title">Informacja o prywatności</h2>
+      <p>Operatorem TBT Bogdan jest Tromsø Bygg &amp; Tre ANS. Aplikacja służy właścicielowi do przeglądania firmowych zapytań i terminów oraz przygotowania ofert budowlanych po polsku i norwesku. Kontakt: <a class="contact" href="mailto:tromsobyggtre@gmail.com">tromsobyggtre@gmail.com</a>.</p>
+
+      <h3>Dane z Google i cel ich użycia</h3>
+      <p>Po upoważnieniu dostępu do konta Google aplikacja pobiera ograniczoną migawkę potrzebną do przeglądu spraw wymagających odpowiedzi i nadchodzących terminów. Gdy monitoring jest włączony, pobieranie odbywa się co 15 minut. Właściciel może również uruchomić je ręcznie.</p>
+      <ul>
+        <li><strong>Gmail:</strong> do 30 wiadomości z folderu Odebrane z ostatnich 30 dni: nadawca, temat, data, krótki fragment wiadomości, etykiety oraz identyfikatory wiadomości i wątku.</li>
+        <li><strong>Kalendarz Google:</strong> do 50 wydarzeń z głównego kalendarza na następne 14 dni: tytuł, początek i koniec, status, link oraz identyfikator.</li>
+        <li><strong>Google Drive:</strong> metadane do 50 ostatnio zmienianych plików poza koszem: nazwa, typ pliku, data zmiany, link oraz identyfikator.</li>
+      </ul>
+      <p>Ten monitoring nie pobiera pełnej treści wiadomości, załączników ani treści dokumentów Drive. Aplikacja zapisuje także dane wprowadzone przez właściciela podczas przygotowywania ofert i działań, w tym dane klienta, zakres prac, koszty, adres odbiorcy lub informacje o planowanym terminie.</p>
+
+      <h3>Przechowywanie i analiza AI</h3>
+      <p>Aplikacja działa na serwerze w Northflank. Jej zapisane dane — bieżąca migawka, oferty, treści i wyniki działań, dziennik oraz tokeny dostępu do Google — są przechowywane w pliku szyfrowanym metodą AES-256-GCM.</p>
+      <p>Analiza AI uruchamia się na polecenie właściciela w panelu. Wówczas bieżąca migawka, w tym krótkie fragmenty wiadomości, tytuły wydarzeń i metadane plików, jest przesyłana do API OpenAI. Jeśli migawka zawiera poprzednią analizę, ona również jest przesyłana przy ponownej analizie. Odpowiedź AI jest zapisywana w migawce.</p>
+      <p>Żądanie do OpenAI zawiera ustawienie <code>store: false</code>. Samo to ustawienie nie stanowi gwarancji braku jakiegokolwiek przechowywania danych po stronie dostawcy. Aplikacja korzysta z Google do odczytu danych i wykonania zatwierdzonych operacji, z Northflank do działania serwera oraz z OpenAI przy ręcznym uruchomieniu analizy.</p>
+
+      <h3>Zatwierdzanie działań</h3>
+      <p>Wysłanie oferty przez Gmail, utworzenie wydarzenia w kalendarzu i zapisanie oferty jako pliku tekstowego w Drive wymagają odrębnego zatwierdzenia dokładnej treści działania przez właściciela. Analiza AI sama nie wykonuje tych operacji. Wiadomość zatwierdzona do wysłania trafia do wskazanego odbiorcy.</p>
+
+      <h3>Wyłączenie dostępu i usuwanie danych</h3>
+      <p>Kolejne udane pobranie zastępuje bieżącą migawkę. Dziennik zachowuje do 1000 ostatnich wpisów. Dla zapisanych ofert i działań aplikacja nie ma automatycznego terminu usunięcia ani funkcji usuwania w panelu.</p>
+      <p>Wyłączenie monitoringu zatrzymuje pobieranie według harmonogramu; pobieranie ręczne pozostaje dostępne. Upoważnienie aplikacji można cofnąć w ustawieniach konta Google. Po utracie ważnego dostępu aplikacja nie może skutecznie pobierać nowych danych ani wykonywać operacji w Google. Cofnięcie zgody nie usuwa danych zapisanych wcześniej na serwerze ani wiadomości, wydarzeń i plików utworzonych w Google.</p>
+      <p class="notice">W sprawie usunięcia danych zapisanych w aplikacji oraz konfiguracji dostępu należy skontaktować się z administratorem: <a class="contact" href="mailto:tromsobyggtre@gmail.com">tromsobyggtre@gmail.com</a>. Usunięcie danych aplikacji wymaga obsługi administratora.</p>
+    </section>
+
+    <section id="no" lang="nb" aria-labelledby="no-title">
+      <h2 id="no-title">Personverninformasjon</h2>
+      <p>TBT Bogdan drives av Tromsø Bygg &amp; Tre ANS. Appen brukes av eieren til å gjennomgå bedriftens henvendelser og avtaler og til å utarbeide byggetilbud på polsk og norsk. Kontakt: <a class="contact" href="mailto:tromsobyggtre@gmail.com">tromsobyggtre@gmail.com</a>.</p>
+
+      <h3>Opplysninger fra Google og bruken av dem</h3>
+      <p>Etter at tilgang til Google-kontoen er godkjent, henter appen en begrenset oversikt for å identifisere saker som trenger svar, og kommende avtaler. Når overvåkingen er aktivert, hentes oversikten hvert 15. minutt. Eieren kan også starte innhentingen manuelt.</p>
+      <ul>
+        <li><strong>Gmail:</strong> opptil 30 meldinger fra innboksen fra de siste 30 dagene: avsender, emne, dato, et kort meldingsutdrag, etiketter samt meldings- og trådidentifikatorer.</li>
+        <li><strong>Google Kalender:</strong> opptil 50 hendelser fra hovedkalenderen for de neste 14 dagene: tittel, start og slutt, status, lenke og identifikator.</li>
+        <li><strong>Google Drive:</strong> metadata for opptil 50 av de sist endrede filene utenfor papirkurven: navn, filtype, endringstidspunkt, lenke og identifikator.</li>
+      </ul>
+      <p>Denne overvåkingen henter ikke hele e-postmeldinger, vedlegg eller innholdet i Drive-dokumenter. Appen lagrer også opplysninger som eieren legger inn ved utarbeidelse av tilbud og handlinger, blant annet kundeopplysninger, arbeidsbeskrivelser, kostnader, mottakeradresse og opplysninger om planlagte avtaler.</p>
+
+      <h3>Lagring og AI-analyse</h3>
+      <p>Appen kjører på en server hos Northflank. Lagrede appdata — den gjeldende oversikten, tilbud, innhold og resultater fra handlinger, logg og Google-tokener — lagres i en fil som er kryptert med AES-256-GCM.</p>
+      <p>AI-analysen startes av eieren i panelet. Da sendes den gjeldende oversikten, inkludert korte e-postutdrag, kalendertitler og filmetadata, til OpenAI API. Hvis oversikten inneholder en tidligere analyse, sendes også denne ved en ny analyse. AI-svaret lagres i oversikten.</p>
+      <p>Forespørselen til OpenAI bruker innstillingen <code>store: false</code>. Denne innstillingen alene garanterer ikke at leverandøren ikke lagrer noen opplysninger. Appen bruker Google til innhenting og godkjente operasjoner, Northflank til serverdrift og OpenAI når en analyse startes manuelt.</p>
+
+      <h3>Godkjenning av handlinger</h3>
+      <p>Utsending av tilbud via Gmail, opprettelse av kalenderhendelser og lagring av tilbud som tekstfiler i Drive krever en egen godkjenning av handlingens nøyaktige innhold fra eieren. AI-analysen utfører ikke disse operasjonene på egen hånd. En godkjent e-post sendes til den angitte mottakeren.</p>
+
+      <h3>Deaktivering av tilgang og sletting</h3>
+      <p>En ny, vellykket innhenting erstatter den gjeldende oversikten. Loggen beholder opptil 1000 av de siste oppføringene. Appen har ingen automatisk slettefrist for lagrede tilbud og handlinger og ingen slettefunksjon i panelet.</p>
+      <p>Deaktivering av overvåkingen stopper den planlagte innhentingen; manuell innhenting er fortsatt tilgjengelig. Appens tilgang kan trekkes tilbake i Google-kontoens innstillinger. Når gyldig tilgang opphører, kan appen ikke hente nye opplysninger eller utføre operasjoner i Google. Tilbaketrekking sletter ikke opplysninger som allerede er lagret på serveren, eller e-poster, kalenderhendelser og filer som er opprettet i Google.</p>
+      <p class="notice">For sletting av lagrede appdata og tilgangsoppsett, kontakt administratoren: <a class="contact" href="mailto:tromsobyggtre@gmail.com">tromsobyggtre@gmail.com</a>. Sletting av appdata må utføres av administratoren.</p>
+    </section>
+  </main>
+  <footer><a href="/">Powrót do strony głównej / Tilbake til forsiden</a></footer>
+</body>
+</html>
