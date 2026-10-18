@@ -40,13 +40,17 @@
       </ul>
       <p>Ten monitoring nie pobiera pełnej treści wiadomości, załączników ani treści dokumentów Drive. Aplikacja zapisuje także dane wprowadzone przez właściciela podczas przygotowywania ofert i działań, w tym dane klienta, zakres prac, koszty, adres odbiorcy lub informacje o planowanym terminie.</p>
 
+      <h3>Terminy z Mittanbud</h3>
+      <p>Po włączeniu prywatnego dodatku Chrome nowa wiadomość wysłana przez firmę na Mittanbud, zawierająca kandydat terminu, jest przekazywana do serwera TBT wraz z czasem wysyłki i adresem rozmowy. Dodatek działa przy otwartym Chrome i zalogowanej stronie; nie importuje historii, szkiców ani wiadomości klientów. Odczytuje potwierdzenie wysyłki w widoku strony, bez dostępu do plików cookie lub tokenów Mittanbud.</p>
+      <p>Serwer rozpoznaje datę bez przesyłania tej wiadomości do AI. Zgodnie z upoważnieniem właściciela zapisuje jednoznaczny termin w firmowym kalendarzu: prywatna rezerwacja wstępna, bez zaproszenia klienta, z linkiem do rozmowy i krótkim fragmentem ustalenia. Wizyta bez określonej długości trwa 30 minut. Konflikty, niejasności i zmiany terminu wymagają sprawdzenia. Zaszyfrowany magazyn zachowuje do 1000 rekordów importu i 200 ostatnich wyników; lokalna kolejka dodatku do 20 oczekujących wiadomości oraz ograniczony klucz integracji są zapisane w profilu Chrome. Wyłączenie dodatku zatrzymuje dalsze odczyty.</p>
+
       <h3>Przechowywanie i analiza AI</h3>
       <p>Aplikacja działa na serwerze w Northflank. Jej zapisane dane — bieżąca migawka, oferty, treści i wyniki działań, dziennik oraz tokeny dostępu do Google — są przechowywane w pliku szyfrowanym metodą AES-256-GCM.</p>
       <p>Analiza AI uruchamia się na polecenie właściciela w panelu. Wówczas bieżąca migawka, w tym krótkie fragmenty wiadomości, tytuły wydarzeń i metadane plików, jest przesyłana do API OpenAI. Poprzednie wyniki analizy nie są ponownie dołączane do zapytania. Odpowiedź AI jest zapisywana z datą migawki; po kolejnym przeglądzie panel oznacza starszą analizę.</p>
       <p>Żądanie do OpenAI zawiera ustawienie <code>store: false</code>. Samo to ustawienie nie stanowi gwarancji braku jakiegokolwiek przechowywania danych po stronie dostawcy. Aplikacja korzysta z Google do odczytu danych i wykonania zatwierdzonych operacji, z Northflank do działania serwera oraz z OpenAI przy ręcznym uruchomieniu analizy.</p>
 
       <h3>Zatwierdzanie działań</h3>
-      <p>Wysłanie oferty przez Gmail, utworzenie wydarzenia w kalendarzu i zapisanie oferty jako pliku tekstowego w Drive wymagają odrębnego zatwierdzenia dokładnej treści działania przez właściciela. Analiza AI sama nie wykonuje tych operacji. Wiadomość zatwierdzona do wysłania trafia do wskazanego odbiorcy.</p>
+      <p>Wysłanie oferty przez Gmail, ręczne utworzenie wydarzenia w panelu i zapisanie oferty jako pliku tekstowego w Drive wymagają odrębnego zatwierdzenia dokładnej treści działania przez właściciela. Wyjątkiem jest opisana powyżej, osobno upoważniona reguła kalendarza Mittanbud. Analiza AI sama nie wykonuje tych operacji. Wiadomość zatwierdzona do wysłania trafia do wskazanego odbiorcy.</p>
 
       <h3>Wyłączenie dostępu i usuwanie danych</h3>
       <p>Kolejne udane pobranie zastępuje bieżącą migawkę. Dziennik zachowuje do 1000 ostatnich wpisów. Dla zapisanych ofert i działań aplikacja nie ma automatycznego terminu usunięcia ani funkcji usuwania w panelu.</p>
@@ -67,13 +71,17 @@
       </ul>
       <p>Denne overvåkingen henter ikke hele e-postmeldinger, vedlegg eller innholdet i Drive-dokumenter. Appen lagrer også opplysninger som eieren legger inn ved utarbeidelse av tilbud og handlinger, blant annet kundeopplysninger, arbeidsbeskrivelser, kostnader, mottakeradresse og opplysninger om planlagte avtaler.</p>
 
+      <h3>Avtaler fra Mittanbud</h3>
+      <p>Når den private Chrome-utvidelsen er aktivert, sendes en ny melding som bedriften har sendt på Mittanbud og som inneholder et mulig avtaletidspunkt, til TBT-serveren sammen med sendetidspunkt og samtalelenke. Utvidelsen krever åpen Chrome og innlogging på nettsiden; historikk, utkast og kundemeldinger importeres ikke. Den leser bekreftelsen i sidevisningen uten tilgang til informasjonskapsler eller Mittanbud-tokener.</p>
+      <p>Serveren tolker datoen uten å sende meldingen til AI. Etter eierens fullmakt lagres entydige avtaler i bedriftens kalender som private, foreløpige reservasjoner uten kundeinvitasjoner, med samtalelenke og et kort utdrag. Befaring uten angitt varighet reserverer 30 minutter. Konflikter, uklarheter og endringer må kontrolleres. Den krypterte lagringen beholder opptil 1000 importposter og de 200 siste resultatene; utvidelsens lokale kø på opptil 20 ventende meldinger og en begrenset integrasjonsnøkkel lagres i Chrome-profilen. Deaktivering stopper videre innhenting.</p>
+
       <h3>Lagring og AI-analyse</h3>
       <p>Appen kjører på en server hos Northflank. Lagrede appdata — den gjeldende oversikten, tilbud, innhold og resultater fra handlinger, logg og Google-tokener — lagres i en fil som er kryptert med AES-256-GCM.</p>
       <p>AI-analysen startes av eieren i panelet. Da sendes den gjeldende oversikten, inkludert korte e-postutdrag, kalendertitler og filmetadata, til OpenAI API. Tidligere analyser sendes ikke på nytt. AI-svaret lagres med tidspunktet for oversikten; etter en ny innhenting merker panelet at analysen gjelder en eldre oversikt.</p>
       <p>Forespørselen til OpenAI bruker innstillingen <code>store: false</code>. Denne innstillingen alene garanterer ikke at leverandøren ikke lagrer noen opplysninger. Appen bruker Google til innhenting og godkjente operasjoner, Northflank til serverdrift og OpenAI når en analyse startes manuelt.</p>
 
       <h3>Godkjenning av handlinger</h3>
-      <p>Utsending av tilbud via Gmail, opprettelse av kalenderhendelser og lagring av tilbud som tekstfiler i Drive krever en egen godkjenning av handlingens nøyaktige innhold fra eieren. AI-analysen utfører ikke disse operasjonene på egen hånd. En godkjent e-post sendes til den angitte mottakeren.</p>
+      <p>Utsending av tilbud via Gmail, manuelt foreslåtte kalenderhendelser og lagring av tilbud som tekstfiler i Drive krever en egen godkjenning av handlingens nøyaktige innhold fra eieren. Unntaket er den særskilt godkjente Mittanbud-regelen beskrevet ovenfor. AI-analysen utfører ikke disse operasjonene på egen hånd. En godkjent e-post sendes til den angitte mottakeren.</p>
 
       <h3>Deaktivering av tilgang og sletting</h3>
       <p>En ny, vellykket innhenting erstatter den gjeldende oversikten. Loggen beholder opptil 1000 av de siste oppføringene. Appen har ingen automatisk slettefrist for lagrede tilbud og handlinger og ingen slettefunksjon i panelet.</p>

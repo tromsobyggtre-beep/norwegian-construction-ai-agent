@@ -45,3 +45,11 @@ Panel jest chroniony kluczem administratora przesyłanym w nagłówku HTTPS. Klu
 Testy: `npm ci`, `npm test`. Integracja z prawdziwym kontem wymaga OAuth i testu wykonanego przez właściciela, bez wysyłania oferty do klienta w trakcie konfiguracji.
 
 Dokumentacja: https://developers.google.com/identity/protocols/oauth2/web-server oraz https://developers.openai.com/api/docs/guides/text .
+
+## Automatyczne terminy Mittanbud
+
+Rozszerzenie Chrome w `extension/` obserwuje wyłącznie nowe wysyłki firmy w rozmowie Mittanbud. Wymaga instalacji przez właściciela, włączenia i osobnego `MITTANBUD_INGEST_TOKEN` (minimum 32 znaki), zapisanego ręcznie w dodatku. Nigdy nie używaj tam ADMIN_TOKEN. Ograniczony token ma dostęp tylko do GET /api/mittanbud/status i POST /api/mittanbud/observe. Ustawienie właściciela /api/mittanbud/settings włącza lub wyłącza regułę; historia jest w panelu Nowy termin.
+
+Wysyłka jest rozpoznawana po trusted send intent oraz nowym wysłanym elemencie i pustym edytorze bez wskaźnika błędu. To sygnał interfejsu, nie oficjalny webhook Mittanbud: późny błąd strony może wymagać sprawdzenia. Dodatek działa tylko w otwartej przeglądarce, przy zalogowanym Mittanbud. Nie działa automatycznie w aplikacji mobilnej i nie importuje historii.
+
+Serwer deterministycznie rozpoznaje jednoznaczne daty PL/NO/EN; nie wywołuje AI. Czas Europe/Oslo. Wizyta bez długości: 30 minut, zgodnie z ustaleniem właściciela. Realizacja wymaga końca lub długości. Odmowa, zmiana, alternatywy i niejasny termin nie tworzą wpisu. Zapis do dokładnego kalendarza tromsobyggtre@gmail.com jest prywatny, wstępny i bez uczestników; wysłana propozycja nie dowodzi zgody klienta. Odczyt po deterministycznym ID, kontrola konfliktu i trwały stan chronią przed ponowieniem po niepewnym wyniku.

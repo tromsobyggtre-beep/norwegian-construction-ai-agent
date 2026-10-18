@@ -4,12 +4,22 @@ import {randomBytes} from 'node:crypto';
 import {Store,check,text,equal,quote,action,execute} from './core.mjs';
 import {Google,scopes} from './google.mjs';
 import {workspace,analysisInput,analysisFormat,parseAnalysis,osloDateTime} from './workspace.mjs';
+import {validateObservation,normalizeAppointment,importAppointment} from './mittanbud.mjs';
+import {extractAppointment} from './mittanbud-parser.mjs';
 
 const env=process.env;
 check((env.ADMIN_TOKEN||'').length>=32,'Ustaw silny ADMIN_TOKEN (minimum 32 znaki)');
 const store=new Store(env.DATA_DIR||'./data',env.DATA_ENCRYPTION_KEY),google=new Google(store);
 const ui=readFileSync(new URL('./index.html',import.meta.url));
 const states=new Map(),rate=new Map();let running=false,analyzing=false;
+function mittanbudStatus() {return {enabled:store.data.settings.mittanbudAuto===true,tokenConfigured:(env.MITTANBUD_INGEST_TOKEN||'').length>=32,visitMinutes:30,recent:(store.data.mittanbudObservations||[]).slice(-20).reverse()};}
+function rememberMittanbud(source,result) {
+  const items=store.data.mittanbudObservations||[];
+  const entry={id:source.sourceHash,at:new Date().toISOString(),url:source.url,...result};
+  const previous=items.findIndex(x=>x.id===entry.id);if(previous>=0)items.splice(previous,1);
+  items.push(entry);store.data.mittanbudObservations=items.slice(-200);store.audit('mittanbud_observation_'+result.state,source.sourceHash);
+  return result;
+}
 async function monitor() {
   if(running||analyzing)return {busy:true};running=true;
   try {
@@ -63,12 +73,38 @@ const server=http.createServer(async(req,res)=>{
     const ip=req.socket.remoteAddress,key=ip+':'+Math.floor(Date.now()/60000);
     if(rate.size>2000)rate.clear();rate.set(key,(rate.get(key)||0)+1);
     if(rate.get(key)>120)return send(429,{error:'Zbyt wiele żądań. Spróbuj za minutę.'});
-    if(!equal(req.headers.authorization,'Bearer '+env.ADMIN_TOKEN))return send(401,{error:'Zaloguj się kluczem administratora'});
-    if(req.headers.origin&&env.PUBLIC_URL&&req.headers.origin!==env.PUBLIC_URL)return send(403,{error:'Niedozwolone źródło żądania'});
     const p=url.pathname;
-    if(req.method==='GET'&&p==='/api/status')return send(200,{company:'Tromsø Bygg & Tre ANS',rateNet:850,mva:25,googleConfigured:google.configured(),googleConnected:!!store.data.google?.refresh_token,googleConnectionMode:env.GOOGLE_REDIRECT_URI?.startsWith('http://localhost:')?'local':'web',aiConfigured:!!(env.OPENAI_API_KEY&&env.OPENAI_MODEL),monitorEnabled:store.data.settings.monitor,lastRun:store.data.lastRun,lastSuccessfulRun:store.data.lastSuccessfulRun||(store.data.lastRun?.ok?store.data.lastRun:null)||(store.data.report?.at?{at:store.data.report.at,ok:true}:null),timezone:'Europe/Oslo',intervalMinutes:15,report:clientReport(),workspace:workspace(store.data),quotes:store.data.quotes,actions:store.data.actions,audit:store.data.audit.slice(-30)});
+    const mittanbudRoute=['/api/mittanbud/observe','/api/mittanbud/status'].includes(p);
+    const extensionOrigin=/^chrome-extension:\/\/[a-p]{32}$/.test(req.headers.origin||'');
+    if(mittanbudRoute&&extensionOrigin){headers['Access-Control-Allow-Origin']=req.headers.origin;headers.Vary='Origin';}
+    if(mittanbudRoute&&req.method==='OPTIONS'&&extensionOrigin){res.writeHead(204,{...headers,'Access-Control-Allow-Methods':'GET, POST','Access-Control-Allow-Headers':'Authorization, Content-Type'});return res.end();}
+    const owner=equal(req.headers.authorization,'Bearer '+env.ADMIN_TOKEN);
+    const limited=mittanbudRoute&&(env.MITTANBUD_INGEST_TOKEN||'').length>=32&&equal(req.headers.authorization,'Bearer '+env.MITTANBUD_INGEST_TOKEN);
+    if(!owner&&!limited)return send(401,{error:'Brak właściwego klucza dostępu.'});
+    if(req.headers.origin&&env.PUBLIC_URL&&req.headers.origin!==env.PUBLIC_URL&&!(mittanbudRoute&&extensionOrigin))return send(403,{error:'Niedozwolone źródło żądania'});
+    if(req.method==='GET'&&p==='/api/mittanbud/status')return send(200,{ok:true,enabled:store.data.settings.mittanbudAuto===true,visitMinutes:30});
+    if(req.method==='GET'&&p==='/api/status')return send(200,{company:'Tromsø Bygg & Tre ANS',rateNet:850,mva:25,googleConfigured:google.configured(),googleConnected:!!store.data.google?.refresh_token,googleConnectionMode:env.GOOGLE_REDIRECT_URI?.startsWith('http://localhost:')?'local':'web',aiConfigured:!!(env.OPENAI_API_KEY&&env.OPENAI_MODEL),monitorEnabled:store.data.settings.monitor,lastRun:store.data.lastRun,lastSuccessfulRun:store.data.lastSuccessfulRun||(store.data.lastRun?.ok?store.data.lastRun:null)||(store.data.report?.at?{at:store.data.report.at,ok:true}:null),timezone:'Europe/Oslo',intervalMinutes:15,mittanbud:mittanbudStatus(),report:clientReport(),workspace:workspace(store.data),quotes:store.data.quotes,actions:store.data.actions,audit:store.data.audit.slice(-30)});
+    if(req.method==='GET'&&p==='/api/mittanbud/history')return send(200,mittanbudStatus());
     if(req.method!=='POST')return send(404,{error:'Nie znaleziono'});
     const b=await jsonBody(req);
+    if(p==='/api/mittanbud/settings'){
+      check(typeof b.enabled==='boolean','Nieprawidłowe ustawienie Mittanbud');
+      if(b.enabled){check((env.MITTANBUD_INGEST_TOKEN||'').length>=32,'Najpierw skonfiguruj ograniczony klucz rozszerzenia');check(env.GOOGLE_ACCOUNT_EMAIL?.toLowerCase()==='tromsobyggtre@gmail.com'&&store.data.google?.refresh_token,'Najpierw połącz konto Google firmy TBT');}
+      store.data.settings.mittanbudAuto=b.enabled;store.audit('mittanbud_setting',String(b.enabled));return send(200,mittanbudStatus());
+    }
+    if(p==='/api/mittanbud/observe'){
+      check(store.data.settings.mittanbudAuto===true,'Automatyczny zapis terminów Mittanbud jest wyłączony');
+      check(env.GOOGLE_ACCOUNT_EMAIL?.toLowerCase()==='tromsobyggtre@gmail.com'&&store.data.google?.refresh_token,'Brak właściwego połączenia kalendarza TBT');
+      const source=validateObservation(b.source);
+      const parsed=extractAppointment(source);
+      if(parsed.state!=='ready')return send(200,rememberMittanbud(source,parsed));
+      let appointment;
+      try {appointment=normalizeAppointment(source,parsed.extraction,{visitMinutes:30});}
+      catch(error){if(error.status===400)return send(200,rememberMittanbud(source,{state:'ambiguous',message:error.message}));throw error;}
+      const imported=await importAppointment(store,google,source,appointment);
+      const result={state:imported.status==='completed'?(imported.reason.includes('już istnieje')?'duplicate':'created'):imported.status==='uncertain'?'uncertain':'conflict',message:imported.reason,...(imported.eventUrl?{eventUrl:imported.eventUrl}:{}),start:appointment.start,end:appointment.end};
+      return send(200,rememberMittanbud(source,result));
+    }
     if(p==='/api/google/connect'){
       check(!env.GOOGLE_REDIRECT_URI?.startsWith('http://localhost:'),'Ten klient Google używa jednorazowego połączenia na komputerze właściciela. Użyj lokalnego pomocnika OAuth opisanego w instrukcji.');
       const c=google.client(false),state=randomBytes(32).toString('hex'),{codeVerifier,codeChallenge}=await c.generateCodeVerifierAsync();
@@ -130,5 +166,5 @@ const server=http.createServer(async(req,res)=>{
 });
 server.requestTimeout=30000;server.headersTimeout=15000;
 setInterval(()=>{if(store.data.settings.monitor&&store.data.google?.refresh_token)monitor().catch(()=>{});},15*60000).unref();
-server.listen(Number(env.PORT||8080),'0.0.0.0',()=>console.log('TBT Bogdan listening; external actions require approval'));
+server.listen(Number(env.PORT||8080),'0.0.0.0',()=>console.log('TBT Bogdan listening; owner-approved action rules active'));
 process.on('SIGTERM',()=>server.close(()=>process.exit(0)));

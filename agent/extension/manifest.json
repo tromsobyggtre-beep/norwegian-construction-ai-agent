@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "TBT · Mittanbud do Kalendarza",
+  "description": "Dodaje jednoznaczne terminy z Twoich nowo wysłanych wiadomości Mittanbud do kalendarza TBT.",
+  "version": "0.2.0",
+  "minimum_chrome_version": "116",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://minbedrift.mittanbud.no/*",
+    "https://site--norwegian-construction-ai-agent--jkpql7qmx4kk.code.run/*"
+  ],
+  "background": {"service_worker": "background.js", "type": "module"},
+  "action": {"default_title": "TBT · terminy Mittanbud", "default_popup": "popup.html"},
+  "content_scripts": [{
+    "matches": ["https://minbedrift.mittanbud.no/*"],
+    "js": ["shared.js", "content.js"],
+    "run_at": "document_start"
+  }],
+  "content_security_policy": {"extension_pages": "script-src 'self'; object-src 'none'"}
+}
