@@ -16,8 +16,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        memory: [256, 512]
-        profile: [baseline, free-tier]
+        # Previous runs established baseline and free-tier/256 MiB OOMs.
+        # Re-run the viable candidate's complete CRUD workload only.
+        memory: [512]
+        profile: [free-tier]
     steps:
       - uses: actions/checkout@v7
         with:

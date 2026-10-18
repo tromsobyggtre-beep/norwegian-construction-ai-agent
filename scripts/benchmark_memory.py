@@ -186,7 +186,7 @@ def exercise(base: str, hold_seconds: int, sensitive_values: set[str]) -> list[s
         raise ProbeError("Frontend did not return an HTML document")
     checks.append("frontend_html")
     credentials = {
-        "email": "memory-benchmark@example.test", "password": "Aa1" + secrets.token_hex(24),
+        "email": "memory-benchmark@example.com", "password": "Aa1" + secrets.token_hex(24),
         "full_name": "Memory benchmark",
     }
     sensitive_values.add(credentials["password"])
@@ -194,7 +194,7 @@ def exercise(base: str, hold_seconds: int, sensitive_values: set[str]) -> list[s
     if account.get("role") != "admin" or account.get("is_active") is not True:
         raise ProbeError("Bootstrap did not return an active administrator")
     checks.append("first_administrator")
-    other = {**credentials, "email": "second-user@example.test"}
+    other = {**credentials, "email": "second-user@example.com"}
     http(base, "/api/v1/users/auth/register", "POST", other, expected=403)
     checks.append("subsequent_registration_closed")
     login = http(base, "/api/v1/users/auth/login", "POST", {
@@ -214,28 +214,47 @@ def exercise(base: str, hold_seconds: int, sensitive_values: set[str]) -> list[s
         "name": "Small carpentry estimate", "project_id": project_id,
     }, token, 201)
     boq_path = f"/api/v1/boq/boqs/{boq['id']}/"
+    position_ids = []
     for index in range(10):
         position = http(base, boq_path + "positions/", "POST", {
+            "boq_id": boq["id"],
             "ordinal": f"01.{index + 1:03}", "description": f"Timber installation {index + 1}",
             "unit": "m2", "quantity": 10, "unit_rate": 125,
         }, token, 201)
         if Decimal(str(position.get("total", "-1"))) != Decimal("1250"):
             raise ProbeError("BOQ position total was not the expected 1,250 NOK")
+        position_ids.append(position["id"])
     checks.append("create_boq_and_10_positions_with_totals")
+    position_path = f"/api/v1/boq/positions/{position_ids[0]}"
+    updated = http(base, position_path, "PATCH", {"quantity": 12}, token)
+    if Decimal(str(updated.get("total", "-1"))) != Decimal("1500"):
+        raise ProbeError("Updated position did not recalculate to 1,500 NOK")
+    restored = http(base, position_path, "PATCH", {"quantity": 10}, token)
+    if Decimal(str(restored.get("total", "-1"))) != Decimal("1250"):
+        raise ProbeError("Restored position did not recalculate to 1,250 NOK")
+    checks.append("update_position_and_verify_recalculation")
     deadline = time.monotonic() + hold_seconds
     count = 0
     while count == 0 or time.monotonic() < deadline:
         projects = http(base, "/api/v1/projects/", token=token)
         if not any(p.get("id") == project_id for p in projects):
             raise ProbeError("Saved project missing from project list")
-        positions = http(base, boq_path + "positions/", token=token)
+        saved_boq = http(base, boq_path.rstrip("/"), token=token)
+        positions = saved_boq.get("positions")
         if not isinstance(positions, list) or len(positions) != 10:
             raise ProbeError("Saved BOQ positions did not round-trip")
+        if Decimal(str(saved_boq.get("direct_cost_total", "-1"))) != Decimal("12500"):
+            raise ProbeError("Saved BOQ did not total 12,500 NOK")
         http(base, "/api/health")
         count += 1
         if time.monotonic() < deadline:
             time.sleep(2)
     checks.append(f"repeated_project_boq_health_reads:{count}")
+    http(base, position_path, "DELETE", token=token, expected=204)
+    remaining = http(base, boq_path.rstrip("/"), token=token)
+    if len(remaining.get("positions", [])) != 9 or Decimal(str(remaining.get("direct_cost_total", "-1"))) != Decimal("11250"):
+        raise ProbeError("Deleted position did not leave nine positions totalling 11,250 NOK")
+    checks.append("delete_position_and_verify_persisted_total")
     return checks
 
 
