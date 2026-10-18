@@ -1,0 +1,50 @@
+name: Free tier memory benchmark
+
+# This isolated branch only: the workflow does not deploy or touch cloud resources.
+on:
+  push:
+    branches: [codex/northflank-free-tier]
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: Report label (runtime is the root Dockerfile defaults)
+        type: string
+        default: baseline
+      dockerfile:
+        description: Dockerfile to benchmark
+        type: string
+        default: Dockerfile
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        memory: [256, 512, 768]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          submodules: false
+      - name: Build and benchmark constrained containers
+        env:
+          BENCHMARK_PROFILE: ${{ inputs.profile || 'baseline' }}
+          BENCHMARK_DOCKERFILE: ${{ inputs.dockerfile || 'Dockerfile' }}
+          BENCHMARK_MEMORY: ${{ matrix.memory }}
+        run: >-
+          python3 scripts/benchmark_memory.py
+          --profile "$BENCHMARK_PROFILE"
+          --dockerfile "$BENCHMARK_DOCKERFILE"
+          --limits "$BENCHMARK_MEMORY"
+          --output "work/memory-benchmark-$BENCHMARK_MEMORY.json"
+      - name: Retain complete measurements in the job log
+        if: always()
+        run: >-
+          if [ -f "work/memory-benchmark-${{ matrix.memory }}.json" ]; then
+          cat "work/memory-benchmark-${{ matrix.memory }}.json";
+          fi
