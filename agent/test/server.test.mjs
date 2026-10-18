@@ -13,5 +13,10 @@ test('HTTP: publiczny health, prywatne dane, walidacja i brak zapisu Google bez 
     assert.equal((await fetch(base+'/api/actions/approve',{method:'POST',headers,body:'{}'})).status,400);
     assert.equal((await fetch(base+'/oauth/google/callback?state=forged&code=bad')).status,400);
     assert.equal((await fetch(base+'/api/google/connect',{method:'POST',headers,body:'{}'})).status,400);
+    const futureYear=new Date().getUTCFullYear()+2;
+    const proposal=await fetch(base+'/api/actions',{method:'POST',headers,body:JSON.stringify({kind:'calendar_event',summary:'Test lokalnej daty',description:'Tylko lokalna propozycja',start:`${futureYear}-01-20T09:00`,end:`${futureYear}-01-20T10:00`})});
+    assert.equal(proposal.status,201);const event=await proposal.json();
+    assert.equal(event.payload.start.dateTime,`${futureYear}-01-20T08:00:00.000Z`);assert.equal(event.payload.start.timeZone,'Europe/Oslo');assert.equal(event.state,'pending');
+    assert.equal((await fetch(base+'/api/actions',{method:'POST',headers,body:JSON.stringify({kind:'calendar_event',summary:'Błędna data',description:'Test',start:`${futureYear}-02-30T09:00:00+01:00`,end:`${futureYear}-03-02T10:00:00+01:00`})})).status,400);
   }finally{child.kill();await new Promise(r=>child.once('exit',r));rmSync(dir,{recursive:true});}
 });

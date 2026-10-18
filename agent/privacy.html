@@ -42,7 +42,7 @@
 
       <h3>Przechowywanie i analiza AI</h3>
       <p>Aplikacja działa na serwerze w Northflank. Jej zapisane dane — bieżąca migawka, oferty, treści i wyniki działań, dziennik oraz tokeny dostępu do Google — są przechowywane w pliku szyfrowanym metodą AES-256-GCM.</p>
-      <p>Analiza AI uruchamia się na polecenie właściciela w panelu. Wówczas bieżąca migawka, w tym krótkie fragmenty wiadomości, tytuły wydarzeń i metadane plików, jest przesyłana do API OpenAI. Jeśli migawka zawiera poprzednią analizę, ona również jest przesyłana przy ponownej analizie. Odpowiedź AI jest zapisywana w migawce.</p>
+      <p>Analiza AI uruchamia się na polecenie właściciela w panelu. Wówczas bieżąca migawka, w tym krótkie fragmenty wiadomości, tytuły wydarzeń i metadane plików, jest przesyłana do API OpenAI. Poprzednie wyniki analizy nie są ponownie dołączane do zapytania. Odpowiedź AI jest zapisywana z datą migawki; po kolejnym przeglądzie panel oznacza starszą analizę.</p>
       <p>Żądanie do OpenAI zawiera ustawienie <code>store: false</code>. Samo to ustawienie nie stanowi gwarancji braku jakiegokolwiek przechowywania danych po stronie dostawcy. Aplikacja korzysta z Google do odczytu danych i wykonania zatwierdzonych operacji, z Northflank do działania serwera oraz z OpenAI przy ręcznym uruchomieniu analizy.</p>
 
       <h3>Zatwierdzanie działań</h3>
@@ -69,7 +69,7 @@
 
       <h3>Lagring og AI-analyse</h3>
       <p>Appen kjører på en server hos Northflank. Lagrede appdata — den gjeldende oversikten, tilbud, innhold og resultater fra handlinger, logg og Google-tokener — lagres i en fil som er kryptert med AES-256-GCM.</p>
-      <p>AI-analysen startes av eieren i panelet. Da sendes den gjeldende oversikten, inkludert korte e-postutdrag, kalendertitler og filmetadata, til OpenAI API. Hvis oversikten inneholder en tidligere analyse, sendes også denne ved en ny analyse. AI-svaret lagres i oversikten.</p>
+      <p>AI-analysen startes av eieren i panelet. Da sendes den gjeldende oversikten, inkludert korte e-postutdrag, kalendertitler og filmetadata, til OpenAI API. Tidligere analyser sendes ikke på nytt. AI-svaret lagres med tidspunktet for oversikten; etter en ny innhenting merker panelet at analysen gjelder en eldre oversikt.</p>
       <p>Forespørselen til OpenAI bruker innstillingen <code>store: false</code>. Denne innstillingen alene garanterer ikke at leverandøren ikke lagrer noen opplysninger. Appen bruker Google til innhenting og godkjente operasjoner, Northflank til serverdrift og OpenAI når en analyse startes manuelt.</p>
 
       <h3>Godkjenning av handlinger</h3>

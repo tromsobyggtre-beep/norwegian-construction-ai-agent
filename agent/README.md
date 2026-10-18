@@ -24,9 +24,17 @@ Po zgodzie przenieś przez zaufany proces wdrożenia `GOOGLE_CLIENT_ID`, `GOOGLE
 
 18 października 2026 projekt `tbt-bogdan-agent` został przełączony na External / In production. Własna domena aplikacji to `tromsobyggtre.no`; publiczny opis jest pod `https://tromsobyggtre.no/tbt-bogdan`, a informacja o prywatności pod `https://tromsobyggtre.no/tbt-bogdan-personvern`. Tryb produkcyjny nie oznacza zakończenia weryfikacji Google; ostrzeżenie i limit niezweryfikowanej aplikacji mogą pozostać. Po zmianie trybu uzyskaj nowe upoważnienie, aby nie polegać na tokenie wydanym w Testing. Nowe tokeny produkcyjne nie podlegają testowej regule 7 dni, ale dostęp może zostać cofnięty lub wygasnąć z innych przyczyn.
 
+## Na dziś i priorytety
+
+Widok „Na dziś” pokazuje liczniki oraz propozycje do przeglądu wyliczane z zapisanych danych: działania oczekujące na zatwierdzenie, operacje z niepewnym wynikiem, potwierdzone terminy w najbliższych 48 godzinach i do 10 nieprzeczytanych wiadomości z INBOX, z pominięciem kategorii Promocje i Społeczności. Odnośniki prowadzą do źródeł w Google. Nieprzeczytana wiadomość nie oznacza braku odpowiedzi, a tytuł wiadomości lub wydarzenia nie potwierdza płatności ani wykonania prac.
+
+Terminy są wyświetlane i wprowadzane w czasie norweskim `Europe/Oslo`. Formularz daty nie wymaga ręcznego podawania strefy; serwer przelicza ją na UTC, uwzględniając zmianę czasu. Nieistniejące godziny wiosną oraz podwójne godziny jesienią wymagają wybrania innej godziny. Wydarzenia całodniowe zachowują datę kalendarzową w Oslo.
+
 ## Analiza AI
 
 Ustaw `OPENAI_API_KEY` i `OPENAI_MODEL` w sekretach Northflank. Model jest konfigurowalny, nie jest to nazwa wtyczki Bogdan. Przycisk Analiza Bogdana przekazuje ostatnią migawkę do OpenAI Responses API z `store:false`; AI nie otrzymuje narzędzi wykonujących działania. Analiza jest ręczna, bez cyklicznego kosztu modeli. Same obliczenia Fast Price działają bez klucza AI.
+
+Analiza ma uporządkowany format: podsumowanie, do 5 priorytetów z uzasadnieniem i następnym krokiem, brakujące informacje oraz ostrzeżenia. Każdy priorytet wskazuje istniejące źródło z analizowanej migawki; odpowiedź z nieznanym identyfikatorem źródła jest odrzucana. Poprzednia analiza nie jest ponownie wysyłana jako materiał źródłowy. Panel zachowuje ostatni wynik i ostrzega, gdy monitoring pobierze nowszą migawkę niż ta użyta do analizy. Propozycje AI służą do sprawdzenia przez właściciela; wysyłki, zapis wydarzeń i plików nadal wymagają osobnego zatwierdzenia.
 
 ## Zatwierdzenia i eksploatacja
 
