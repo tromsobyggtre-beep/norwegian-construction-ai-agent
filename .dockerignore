@@ -3,3 +3,10 @@
 !NOTICE
 !scripts
 !scripts/bootstrap_admin.py
+!agent
+!agent/**
+agent/node_modules
+agent/data
+agent/.env
+agent/.env.*
+!agent/.env.example
