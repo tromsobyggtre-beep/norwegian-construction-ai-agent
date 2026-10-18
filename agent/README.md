@@ -16,8 +16,6 @@ Wycena: osobogodziny × 850 NOK netto + potwierdzone materiały netto + potwierd
 
 Zakresy OAuth są jawnie zadeklarowane w `google.mjs`: odczyt Gmail + wysłanie zatwierdzonej wiadomości; odczyt kalendarza + zapis wydarzenia; odczyt Drive + tworzenie plików aplikacji. Odczyt Drive w tej wersji pobiera nazwy i metadane, a Gmail nagłówki i skróty wiadomości. Treść załączników i dokumentów nie jest automatycznie importowana. Limity migawki: 30 wiadomości z ostatnich 30 dni, 50 wydarzeń w ciągu 14 dni, 50 plików. To nie jest pełny audyt skrzynki.
 
-## AI
-
 ## Jednorazowy OAuth przez komputer właściciela
 
 Jeśli Google odrzuca współdzieloną domenę `code.run`, zarejestruj klienta Web z redirect URI `http://localhost:8787/oauth/google/callback`. Pomocnik `oauth-local.mjs` uruchamia nasłuch wyłącznie na `127.0.0.1`, sprawdza PKCE, jednorazowy state i adres konta, a otrzymane tokeny zapisuje wyłącznie w szyfrowanym magazynie. Wymaga `GOOGLE_CREDENTIALS_FILE` (pobrany JSON Web OAuth), `GOOGLE_ACCOUNT_EMAIL`, `DATA_ENCRYPTION_KEY`, `OAUTH_DATA_DIR`, `OAUTH_URL_FILE`. Uruchom `node oauth-local.mjs`, otwórz adres z `OAUTH_URL_FILE` i samodzielnie zaakceptuj dostęp Google. Sesja wygasa po 15 minutach. Nie przekazuj pliku JSON ani tokenów w czacie.
