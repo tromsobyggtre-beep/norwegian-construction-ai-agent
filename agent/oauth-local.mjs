@@ -9,7 +9,9 @@ check(credentials.redirect_uris?.includes(redirect),'Klient nie zawiera poprawne
 const store=new Store(env.OAUTH_DATA_DIR,env.DATA_ENCRYPTION_KEY),c=new OAuth2Client(credentials.client_id,credentials.client_secret,redirect);
 const state=randomBytes(32).toString('hex'),{codeVerifier,codeChallenge}=await c.generateCodeVerifierAsync();
 const auth=c.generateAuthUrl({access_type:'offline',prompt:'consent',scope:scopes,state,code_challenge:codeChallenge,code_challenge_method:'S256',login_hint:env.GOOGLE_ACCOUNT_EMAIL});
-const expires=Date.now()+15*60000;let used=false;
+const sessionMinutes=Number(env.OAUTH_SESSION_MINUTES||15);
+check(Number.isInteger(sessionMinutes)&&sessionMinutes>=1&&sessionMinutes<=60,'Czas sesji musi wynosić od 1 do 60 minut');
+const sessionMs=sessionMinutes*60000,expires=Date.now()+sessionMs;let used=false;
 const server=http.createServer(async(req,res)=>{
   res.setHeader('Cache-Control','no-store');res.setHeader('Referrer-Policy','no-referrer');res.setHeader('Content-Type','text/plain; charset=utf-8');
   let stage='callback_validation';
@@ -34,4 +36,4 @@ const server=http.createServer(async(req,res)=>{
   }catch(e){res.statusCode=400;res.end('Nie udało się potwierdzić połączenia konta. Sprawdź stan konfiguracji w czacie TBT.');console.log('GOOGLE_AUTH_FAILED',JSON.stringify({stage,code:e.code,status:e.response?.status,cause:e.cause?.code}));server.close();}
 });
 server.listen(8787,'127.0.0.1',()=>{fs.writeFileSync(env.OAUTH_URL_FILE,auth,{mode:0o600});console.log('Local Google authorization ready.');});
-setTimeout(()=>{server.close();process.exit(0);},15*60000).unref();
+setTimeout(()=>{server.close();process.exit(0);},sessionMs).unref();
